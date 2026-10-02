@@ -28,6 +28,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!existing || existing.userId !== userId) {
     return NextResponse.json({ error: "No encontrada" }, { status: 404 });
   }
+  const transactionCount = await prisma.transaction.count({ where: { categoryId: id } });
+  if (transactionCount > 0) {
+    return NextResponse.json({ error: "La categoría tiene transacciones, no se puede borrar" }, { status: 409 });
+  }
   await prisma.category.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

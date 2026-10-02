@@ -30,7 +30,7 @@ export default function AccountsPage() {
       <h2 className="mb-4 text-lg font-semibold text-text-primary">Cuentas</h2>
       <AccountForm onCreated={refresh} />
       <TransferForm accounts={accounts} onDone={refresh} />
-      <AccountList accounts={accounts} />
+      <AccountList accounts={accounts} onChanged={refresh} />
     </div>
   );
 }

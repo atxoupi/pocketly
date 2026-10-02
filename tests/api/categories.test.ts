@@ -59,4 +59,18 @@ describe("categorías API", () => {
     const res = await PATCH(makeRequest({ name: "Hackeada" }), { params: Promise.resolve({ id: category.id }) });
     expect(res.status).toBe(404);
   });
+
+  it("no permite borrar una categoría con transacciones vinculadas", async () => {
+    const user = await prisma.user.create({ data: { email: "cat4@example.com", passwordHash: "x" } });
+    const account = await prisma.account.create({
+      data: { userId: user.id, name: "Principal", type: "checking", initialBalanceCents: 0 },
+    });
+    const category = await prisma.category.create({ data: { userId: user.id, name: "Con gasto", type: "expense", color: "#000" } });
+    await prisma.transaction.create({
+      data: { userId: user.id, accountId: account.id, categoryId: category.id, amountCents: 1000, date: new Date(), type: "expense" },
+    });
+    mockUser(user.id);
+    const res = await DELETE(new Request("http://localhost"), { params: Promise.resolve({ id: category.id }) });
+    expect(res.status).toBe(409);
+  });
 });
