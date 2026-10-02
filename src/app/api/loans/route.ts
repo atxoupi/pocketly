@@ -4,6 +4,7 @@ import { getCurrentUserId } from "@/lib/auth/session";
 import { loanSchema } from "@/lib/validations/loan";
 import { calculateFrenchAmortization } from "@/lib/calculations/amortization";
 import { nextOccurrence } from "@/lib/calculations/recurrence";
+import { markOverdueInstallmentsAsPaid } from "@/lib/calculations/markOverdueInstallmentsPaid";
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -54,6 +55,8 @@ export async function POST(request: Request) {
       installments: { create: installmentsData },
     },
   });
+
+  await markOverdueInstallmentsAsPaid(loan.id);
 
   return NextResponse.json(loan, { status: 201 });
 }
