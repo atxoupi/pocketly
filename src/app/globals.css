@@ -15,3 +15,10 @@ body {
   background-color: var(--color-background);
   color: var(--color-text-primary);
 }
+
+/* Las líneas de referencia (ej. "Hoy") no deben capturar el ratón: si no,
+   pasar por encima de la línea o su etiqueta tapa el área de la gráfica y
+   evita que Recharts dispare el tooltip para esa columna de datos. */
+.recharts-reference-line {
+  pointer-events: none;
+}

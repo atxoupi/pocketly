@@ -64,7 +64,12 @@ export function LoanProgressChart() {
             x={currentMonth}
             stroke="#38bdf8"
             strokeDasharray="4 4"
-            label={{ value: "Hoy", position: "top", fill: "#38bdf8", fontSize: 12 }}
+            label={{
+              value: "Hoy",
+              position: "insideTop",
+              fill: "#38bdf8",
+              fontSize: 12,
+            }}
           />
           {loans.map((loan) => (
             <Line
