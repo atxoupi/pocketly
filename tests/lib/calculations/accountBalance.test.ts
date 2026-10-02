@@ -39,4 +39,16 @@ describe("getAccountBalanceCents", () => {
     expect(await getAccountBalanceCents(main.id)).toBe(10000 - 3000);
     expect(await getAccountBalanceCents(savings.id)).toBe(0 + 3000);
   });
+
+  it("con asOf, ignora movimientos posteriores a esa fecha", async () => {
+    const { user, category, main } = await setupUserWithAccounts();
+    await prisma.transaction.create({
+      data: { userId: user.id, accountId: main.id, categoryId: category.id, amountCents: 5000, date: new Date("2026-05-01"), type: "income" },
+    });
+    await prisma.transaction.create({
+      data: { userId: user.id, accountId: main.id, categoryId: category.id, amountCents: 9999, date: new Date("2026-12-01"), type: "income" },
+    });
+    const balanceAtJune = await getAccountBalanceCents(main.id, new Date("2026-06-01"));
+    expect(balanceAtJune).toBe(10000 + 5000);
+  });
 });

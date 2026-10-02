@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getAccountBalanceCents(accountId: string): Promise<number> {
+export async function getAccountBalanceCents(accountId: string, asOf: Date = new Date()): Promise<number> {
   const account = await prisma.account.findUniqueOrThrow({ where: { id: accountId } });
   const [incomeSum, expenseSum, transfersIn, transfersOut] = await Promise.all([
-    prisma.transaction.aggregate({ where: { accountId, type: "income" }, _sum: { amountCents: true } }),
-    prisma.transaction.aggregate({ where: { accountId, type: "expense" }, _sum: { amountCents: true } }),
-    prisma.transfer.aggregate({ where: { toAccountId: accountId }, _sum: { amountCents: true } }),
-    prisma.transfer.aggregate({ where: { fromAccountId: accountId }, _sum: { amountCents: true } }),
+    prisma.transaction.aggregate({ where: { accountId, type: "income", date: { lte: asOf } }, _sum: { amountCents: true } }),
+    prisma.transaction.aggregate({ where: { accountId, type: "expense", date: { lte: asOf } }, _sum: { amountCents: true } }),
+    prisma.transfer.aggregate({ where: { toAccountId: accountId, date: { lte: asOf } }, _sum: { amountCents: true } }),
+    prisma.transfer.aggregate({ where: { fromAccountId: accountId, date: { lte: asOf } }, _sum: { amountCents: true } }),
   ]);
   return (
     account.initialBalanceCents +
