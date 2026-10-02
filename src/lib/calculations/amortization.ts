@@ -39,3 +39,23 @@ export function calculateFrenchAmortization(
 
   return installments;
 }
+
+export function calculateTermForFixedPayment(
+  remainingPrincipalCents: number,
+  annualInterestRatePercent: number,
+  fixedPaymentCents: number
+): number {
+  const monthlyRate = annualInterestRatePercent / 100 / 12;
+
+  if (monthlyRate === 0) {
+    return Math.ceil(remainingPrincipalCents / fixedPaymentCents);
+  }
+
+  const interestOnlyPaymentCents = remainingPrincipalCents * monthlyRate;
+  if (fixedPaymentCents <= interestOnlyPaymentCents) {
+    throw new Error("La cuota no cubre ni el interés mensual: el préstamo nunca se pagaría");
+  }
+
+  const n = -Math.log(1 - interestOnlyPaymentCents / fixedPaymentCents) / Math.log(1 + monthlyRate);
+  return Math.ceil(n);
+}
