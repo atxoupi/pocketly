@@ -70,7 +70,7 @@ model Transaction {
   recurringInstances Transaction[] @relation("RecurrenceSeries")
 
   generatedFromLoanInstallmentId String?          @unique
-  generatedFromLoanInstallment   LoanInstallment? @relation("InstallmentPayment", fields: [generatedFromLoanInstallmentId], references: [id])
+  generatedFromLoanInstallment   LoanInstallment? @relation("InstallmentPayment", fields: [generatedFromLoanInstallmentId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([accountId])
