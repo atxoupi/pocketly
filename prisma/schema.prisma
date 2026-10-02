@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String
+  savingsGoalPercent Float    @default(20)
+  createdAt          DateTime @default(now())
+
+  categories   Category[]
+  accounts     Account[]
+  transactions Transaction[]
+  transfers    Transfer[]
+  loans        Loan[]
+}
+
+model Category {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+  type   String // "income" | "expense"
+  color  String
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Account {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  type                String // texto libre: "checking" | "savings" | "cash" | ...
+  initialBalanceCents Int
+  createdAt           DateTime @default(now())
+
+  transactions  Transaction[]
+  transfersFrom Transfer[]    @relation("TransferFrom")
+  transfersTo   Transfer[]    @relation("TransferTo")
+  loans         Loan[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  amountCents Int
+  date        DateTime
+  type        String // "income" | "expense"
+  note        String?
+
+  isRecurring        Boolean       @default(false)
+  recurrenceRule     String? // "monthly" | "weekly", solo en la plantilla
+  recurringSourceId  String?
+  recurringSource    Transaction?  @relation("RecurrenceSeries", fields: [recurringSourceId], references: [id])
+  recurringInstances Transaction[] @relation("RecurrenceSeries")
+
+  generatedFromLoanInstallmentId String?          @unique
+  generatedFromLoanInstallment   LoanInstallment? @relation("InstallmentPayment", fields: [generatedFromLoanInstallmentId], references: [id])
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([recurringSourceId])
+}
+
+model Transfer {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccountId String
+  fromAccount   Account  @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  toAccountId   String
+  toAccount     Account  @relation("TransferTo", fields: [toAccountId], references: [id])
+  amountCents   Int
+  date          DateTime
+  note          String?
+
+  @@index([userId])
+}
+
+model Loan {
+  id                        String   @id @default(cuid())
+  userId                    String
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                      String
+  principalCents            Int
+  annualInterestRatePercent Float
+  startDate                 DateTime
+  termMonths                Int
+  paymentAccountId          String
+  paymentAccount            Account  @relation(fields: [paymentAccountId], references: [id])
+
+  installments LoanInstallment[]
+
+  @@index([userId])
+}
+
+model LoanInstallment {
+  id                String   @id @default(cuid())
+  loanId            String
+  loan              Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate           DateTime
+  principalCents    Int
+  interestCents     Int
+  totalCents        Int
+  status            String   @default("pending") // "pending" | "paid"
+
+  paidTransaction Transaction? @relation("InstallmentPayment")
+
+  @@index([loanId])
+}
