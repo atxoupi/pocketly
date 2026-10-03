@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { TransactionList } from "@/components/transactions/TransactionList";
 
-type Transaction = { id: string; amountCents: number; date: string; type: string; note: string | null };
+type Transaction = { id: string; accountName: string; amountCents: number; date: string; type: string; note: string | null };
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);

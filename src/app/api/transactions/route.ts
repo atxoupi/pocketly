@@ -3,6 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth/session";
 import { transactionSchema } from "@/lib/validations/transaction";
 
+type TransactionRow = {
+  id: string;
+  accountId: string;
+  accountName: string;
+  categoryId: string | null;
+  amountCents: number;
+  date: Date;
+  type: string;
+  note: string | null;
+};
+
 export async function GET(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -14,9 +25,68 @@ export async function GET(request: Request) {
 
   const transactions = await prisma.transaction.findMany({
     where: { userId, accountId, categoryId, type },
+    include: { account: { select: { name: true } } },
     orderBy: { date: "desc" },
   });
-  return NextResponse.json(transactions);
+
+  const transactionRows: TransactionRow[] = transactions.map((t) => ({
+    id: t.id,
+    accountId: t.accountId,
+    accountName: t.account.name,
+    categoryId: t.categoryId,
+    amountCents: t.amountCents,
+    date: t.date,
+    type: t.type,
+    note: t.note,
+  }));
+
+  let transferRows: TransactionRow[] = [];
+  if (!categoryId && !type) {
+    const transfers = await prisma.transfer.findMany({
+      where: {
+        userId,
+        ...(accountId ? { OR: [{ fromAccountId: accountId }, { toAccountId: accountId }] } : {}),
+      },
+      include: {
+        fromAccount: { select: { name: true } },
+        toAccount: { select: { name: true } },
+      },
+      orderBy: { date: "desc" },
+    });
+
+    transferRows = transfers.flatMap((transfer) => {
+      const rows: TransactionRow[] = [];
+      if (!accountId || transfer.fromAccountId === accountId) {
+        rows.push({
+          id: `${transfer.id}-out`,
+          accountId: transfer.fromAccountId,
+          accountName: transfer.fromAccount.name,
+          categoryId: null,
+          amountCents: transfer.amountCents,
+          date: transfer.date,
+          type: "transfer-out",
+          note: transfer.note ?? `Transferencia a ${transfer.toAccount.name}`,
+        });
+      }
+      if (!accountId || transfer.toAccountId === accountId) {
+        rows.push({
+          id: `${transfer.id}-in`,
+          accountId: transfer.toAccountId,
+          accountName: transfer.toAccount.name,
+          categoryId: null,
+          amountCents: transfer.amountCents,
+          date: transfer.date,
+          type: "transfer-in",
+          note: transfer.note ?? `Transferencia desde ${transfer.fromAccount.name}`,
+        });
+      }
+      return rows;
+    });
+  }
+
+  const combined = [...transactionRows, ...transferRows].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  return NextResponse.json(combined);
 }
 
 export async function POST(request: Request) {
