@@ -3,19 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-
-const LINKS = [
-  { href: "/dashboard", label: "Resumen" },
-  { href: "/dashboard/accounts", label: "Cuentas" },
-  { href: "/dashboard/transactions", label: "Transacciones" },
-  { href: "/dashboard/loans", label: "Préstamos" },
-  { href: "/dashboard/settings", label: "Ajustes" },
-];
+import { LINKS } from "./navLinks";
 
 export function TopNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex items-center justify-between border-b border-surface-muted bg-surface px-4 py-3">
+    <nav className="hidden items-center justify-between border-b border-surface-muted bg-surface px-4 py-3 md:flex">
       <div className="flex items-center gap-6">
         <span className="text-sm font-semibold text-accent">POCKETLY</span>
         {LINKS.map((link) => (
