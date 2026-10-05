@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { TransactionList } from "@/components/transactions/TransactionList";
 
-type Transaction = { id: string; accountName: string; amountCents: number; date: string; type: string; note: string | null };
+type Transaction = {
+  id: string;
+  accountName: string;
+  amountCents: number;
+  date: string;
+  type: string;
+  note: string | null;
+  generatedFromLoanInstallmentId: string | null;
+};
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -28,7 +36,7 @@ export default function TransactionsPage() {
     <div>
       <h2 className="mb-4 text-lg font-semibold text-text-primary">Transacciones</h2>
       <TransactionForm onCreated={refresh} />
-      <TransactionList transactions={transactions} />
+      <TransactionList transactions={transactions} onDeleted={refresh} />
     </div>
   );
 }
