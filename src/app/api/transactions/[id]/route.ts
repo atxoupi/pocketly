@@ -28,6 +28,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!existing || existing.userId !== userId) {
     return NextResponse.json({ error: "No encontrada" }, { status: 404 });
   }
+  if (existing.generatedFromLoanInstallmentId) {
+    return NextResponse.json(
+      { error: "No se puede eliminar una transacción generada por el pago de una cuota" },
+      { status: 409 }
+    );
+  }
   await prisma.transaction.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

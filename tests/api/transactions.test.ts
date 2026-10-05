@@ -74,6 +74,50 @@ describe("transacciones API", () => {
     expect(res.status).toBe(200);
   });
 
+  it("rechaza eliminar una transacción generada por el pago de una cuota de préstamo", async () => {
+    const { user, account, category } = await setup();
+    const loan = await prisma.loan.create({
+      data: {
+        userId: user.id,
+        name: "Coche",
+        principalCents: 100000,
+        annualInterestRatePercent: 10,
+        startDate: new Date("2026-10-01"),
+        termMonths: 12,
+        paymentAccountId: account.id,
+      },
+    });
+    const installment = await prisma.loanInstallment.create({
+      data: {
+        loanId: loan.id,
+        installmentNumber: 1,
+        dueDate: new Date("2026-11-01"),
+        principalCents: 8000,
+        interestCents: 1000,
+        totalCents: 9000,
+        status: "paid",
+      },
+    });
+    const tx = await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        accountId: account.id,
+        categoryId: category.id,
+        amountCents: 9000,
+        date: new Date(),
+        type: "expense",
+        generatedFromLoanInstallmentId: installment.id,
+      },
+    });
+    mockUser(user.id);
+
+    const res = await DELETE(new Request("http://localhost"), { params: Promise.resolve({ id: tx.id }) });
+    expect(res.status).toBe(409);
+
+    const stillExists = await prisma.transaction.findUnique({ where: { id: tx.id } });
+    expect(stillExists).not.toBeNull();
+  });
+
   it("una transferencia aparece como dos filas (transfer-out en origen, transfer-in en destino)", async () => {
     const { user, account } = await setup();
     const account2 = await prisma.account.create({
@@ -191,5 +235,33 @@ describe("transacciones API", () => {
     expect(new Date(list[0].date).getTime()).toBeGreaterThan(new Date(list[2].date).getTime());
     expect(["transfer-out", "transfer-in"]).toContain(list[0].type);
     expect(list[2].type).toBe("income");
+  });
+
+  it("incluye generatedFromLoanInstallmentId en las filas, null para transferencias", async () => {
+    const { user, account, category } = await setup();
+    await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        accountId: account.id,
+        categoryId: category.id,
+        amountCents: 1000,
+        date: new Date("2026-10-01"),
+        type: "income",
+      },
+    });
+    const account2 = await prisma.account.create({
+      data: { userId: user.id, name: "Ahorros", type: "savings", initialBalanceCents: 0 },
+    });
+    await prisma.transfer.create({
+      data: { userId: user.id, fromAccountId: account.id, toAccountId: account2.id, amountCents: 500, date: new Date("2026-10-02") },
+    });
+    mockUser(user.id);
+
+    const list = await (await GET(new Request("http://localhost/api/transactions"))).json();
+
+    const income = list.find((row: { type: string }) => row.type === "income");
+    const transfer = list.find((row: { type: string }) => row.type === "transfer-out");
+    expect(income.generatedFromLoanInstallmentId).toBeNull();
+    expect(transfer.generatedFromLoanInstallmentId).toBeNull();
   });
 });
