@@ -12,6 +12,7 @@ type TransactionRow = {
   date: Date;
   type: string;
   note: string | null;
+  generatedFromLoanInstallmentId: string | null;
 };
 
 export async function GET(request: Request) {
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
     date: t.date,
     type: t.type,
     note: t.note,
+    generatedFromLoanInstallmentId: t.generatedFromLoanInstallmentId,
   }));
 
   let transferRows: TransactionRow[] = [];
@@ -66,6 +68,7 @@ export async function GET(request: Request) {
           date: transfer.date,
           type: "transfer-out",
           note: transfer.note ?? `Transferencia a ${transfer.toAccount.name}`,
+          generatedFromLoanInstallmentId: null,
         });
       }
       if (!accountId || transfer.toAccountId === accountId) {
@@ -78,6 +81,7 @@ export async function GET(request: Request) {
           date: transfer.date,
           type: "transfer-in",
           note: transfer.note ?? `Transferencia desde ${transfer.fromAccount.name}`,
+          generatedFromLoanInstallmentId: null,
         });
       }
       return rows;
